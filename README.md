@@ -419,26 +419,7 @@ If `.venv` ever breaks (e.g. after moving or renaming the folder), rebuild it:
 Remove-Item -Recurse -Force .venv; python -m venv .venv; .venv\Scripts\python -m pip install -r requirements.txt
 ```
 
-## Roadmap
-- [x] Phase 1: chat, reply suggestions, task organiser
-- [x] Phase 2: life tracker (food + photos, water, supplements, gym, period, work, study, money), goals, monthly growth report, AI news digest
-- [x] Phase 3: Google Calendar (add/list/move/delete events by chatting) + Excel export
-- [x] Phase 5a: code on GitHub, data in Firestore, running 24/7 on Cloud Run
-- [x] Phase 4: morning briefing, reminders (water, events, tasks, evening check-in), period tracker with predictions
-- [ ] Phase 5b: automated tests, auto-deploy from GitHub, published Google app (no weekly Calendar re-login)
-- [x] Phase 6: Jev (TypeSafe) as the message router: 36% smaller Gemini prompts
 
-## Skills this project shows (for your resume)
-- Python bot on the Telegram Bot API (async, polling, scheduled jobs)
-- LLM integration with Google Gemini: function calling (tool use), image understanding, web search grounding
-- Database design: SQLite first, then migrated to Google Cloud Firestore (NoSQL) with a repeatable migration script
-- Google Calendar API with OAuth 2.0 login
-- Excel report generation with charts and conditional formatting (openpyxl)
-- Serverless deployment on Google Cloud Run (Docker, Telegram webhooks, idempotent update handling)
-- Cloud Scheduler jobs, Secret Manager, least-privilege service account, Firestore TTL policies
-- Automated testing with pytest and an in-memory Firestore fake (44 tests)
-- CI/CD with GitHub Actions: test, then deploy, using keyless Workload Identity Federation
-- Web dashboard with passwordless one-time-link login (signed HttpOnly session cookie), Chart.js, mobile-first, cross-chart interaction
 - iOS integration: Siri Shortcuts and Apple Health data sent to the cloud bot through an
   authenticated webhook, with idempotent daily upserts
 - Model routing: a small "System One" decision model (TypeSafe Jev) picks tools per
