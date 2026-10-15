@@ -1,0 +1,18 @@
+# Files NOT uploaded to Google Cloud Build when deploying.
+# Secrets and personal data stay on your PC; the cloud gets its keys from Secret Manager.
+.gcloudignore
+.git
+.gitignore
+.env
+*.db
+credentials.json
+token.json
+API KEY.txt
+.venv/
+__pycache__/
+.vscode/
+
+# Not needed in the cloud
+.github/
+tests/
+.pytest_cache/

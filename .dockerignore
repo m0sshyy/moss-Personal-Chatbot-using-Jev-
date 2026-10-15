@@ -1,0 +1,10 @@
+# Never put these in the cloud image: secrets, personal data, local-only files.
+.env
+*.db
+credentials.json
+token.json
+API KEY.txt
+.venv/
+__pycache__/
+.git/
+.vscode/

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moss · Privacy policy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #fff3f7; --card: #fff; --ink: #2b1d24; --muted: #7a6870; --pink: #d6336c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 Inter, system-ui, sans-serif; }
+  a { color: var(--pink); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 20px 64px; }
+  nav { padding: 6px 0 28px; }
+  nav a { font: 700 20px Fraunces, serif; color: var(--ink); text-decoration: none; }
+  article { background: var(--card); border-radius: 24px; padding: clamp(22px, 5vw, 44px); }
+  h1 { font: 700 clamp(30px, 5vw, 40px)/1.15 Fraunces, serif; margin: 0 0 6px; }
+  h2 { font: 700 21px/1.3 Fraunces, serif; margin: 30px 0 6px; }
+  .updated { color: var(--muted); margin: 0 0 20px; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="./">🌿 Moss</a></nav>
+  <article>
+    <h1>Privacy policy</h1>
+    <p class="updated">Last updated 14 October 2026</p>
+
+    <p>Moss is a personal assistant built by Alya for personal use. It is not a public service: it only answers its owner's
+      Telegram account and ignores everyone else. This page explains what Moss handles and how.</p>
+
+    <h2>What Moss stores</h2>
+    <ul>
+      <li>Messages, photos and voice notes the owner sends to Moss in Telegram, and Moss's replies (recent chat history only).</li>
+      <li>What the owner asks it to track: food, water, supplements, workouts, steps, sleep, cycle, weight, spending, budgets,
+        bills, tasks, work notes and settings.</li>
+      <li>Purchases from the owner's own receipt emails and Apple Pay taps, when the owner has set those up.</li>
+    </ul>
+
+    <h2>Google user data</h2>
+    <p>If the owner connects Google Calendar, Moss uses the <b>calendar events</b> permission only to show, add, change and delete
+      events when the owner asks, and to send reminders before them. The sign-in token is stored in Moss's own database.</p>
+    <p>Receipt emails are read by a script in the owner's own Google account and only receipt-like emails are sent to Moss.</p>
+    <p>Moss's use and transfer of information received from Google APIs adheres to the
+      <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+      including the Limited Use requirements. Google user data is never sold, never used for advertising, and never shared
+      with anyone except as described on this page.</p>
+
+    <h2>Where data goes</h2>
+    <ul>
+      <li><b>Google Cloud</b> (Cloud Run and Firestore, Singapore region): where Moss runs and where its data is stored.</li>
+      <li><b>Google Gemini API</b>: reads each message, photo or voice note to understand it and reply.</li>
+      <li><b>TypeSafe (Jev)</b>: receives the text of each message to decide which tools Moss needs.</li>
+      <li><b>Telegram</b>: delivers messages between the owner and Moss.</li>
+    </ul>
+    <p>Nothing is shared with anyone else, and the web dashboard is private, behind a one-time login link.</p>
+
+    <h2>Deleting data</h2>
+    <p>The owner can ask Moss to delete any entry, clear its chat memory with /reset, disconnect Google Calendar at
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>, and delete all stored data
+      from Google Cloud at any time.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy: <a href="mailto:alyajejai@gmail.com">alyajejai@gmail.com</a></p>
+  </article>
+</main>
+</body>
+</html>

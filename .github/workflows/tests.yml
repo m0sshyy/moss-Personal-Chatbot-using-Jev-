@@ -1,0 +1,26 @@
+# GitHub Actions: runs all the automated tests on every push and pull request.
+# (The private copy of this project also deploys to Cloud Run after the tests pass,
+# signing in with Workload Identity Federation instead of a stored key.)
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest

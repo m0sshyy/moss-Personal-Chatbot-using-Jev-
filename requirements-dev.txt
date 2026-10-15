@@ -1,0 +1,3 @@
+# Extra libraries only needed for running the tests (not in the cloud bot).
+-r requirements.txt
+pytest==9.1.1

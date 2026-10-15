@@ -1,0 +1,20 @@
+# Secrets — never commit or share
+.env
+
+# Python environment and caches
+.venv/
+__pycache__/
+
+# Your personal data (health, money, periods) — never upload this
+*.db
+
+# Google login files — like keys to your calendar, never share
+credentials.json
+token.json
+
+# Any notes with keys in them
+API KEY.txt
+*.key.txt
+
+# Test leftovers
+.pytest_cache/
