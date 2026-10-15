@@ -1,0 +1,235 @@
+{
+ "run_at": "2026-10-15 16:42",
+ "messages": 96,
+ "brain_questions": 26,
+ "before": {
+  "overall": 0.933,
+  "routing": 0.927,
+  "tools": 0.948,
+  "brain": 0.923
+ },
+ "after": {
+  "overall": 0.954,
+  "routing": 0.938,
+  "tools": 1.0,
+  "brain": 0.923
+ },
+ "history": [
+  {
+   "run_at": "2026-10-15 16:10",
+   "overall": 0.933
+  },
+  {
+   "run_at": "2026-10-15 16:21",
+   "overall": 0.95
+  },
+  {
+   "run_at": "2026-10-15 16:24",
+   "overall": 0.954
+  },
+  {
+   "run_at": "2026-10-15 16:25",
+   "overall": 0.957
+  },
+  {
+   "run_at": "2026-10-15 16:42",
+   "overall": 0.954
+  }
+ ],
+ "avg_tools": 10.2,
+ "all_tools": 36,
+ "safe": 1.0,
+ "nudged": 2,
+ "speed": {
+  "jev_ms": 239,
+  "prompt_tokens": 5272,
+  "gemini_ms": 1576
+ },
+ "models": {
+  "chat": "gemini-flash-lite-latest",
+  "embeddings": "gemini-embedding-2",
+  "router": "Jev"
+ },
+ "sweep": [
+  [
+   0.4,
+   0.692
+  ],
+  [
+   0.425,
+   0.692
+  ],
+  [
+   0.45,
+   0.692
+  ],
+  [
+   0.475,
+   0.692
+  ],
+  [
+   0.5,
+   0.692
+  ],
+  [
+   0.525,
+   0.769
+  ],
+  [
+   0.55,
+   0.846
+  ],
+  [
+   0.575,
+   0.923
+  ],
+  [
+   0.6,
+   0.923
+  ],
+  [
+   0.625,
+   0.923
+  ],
+  [
+   0.65,
+   0.846
+  ],
+  [
+   0.675,
+   0.846
+  ],
+  [
+   0.7,
+   0.808
+  ],
+  [
+   0.725,
+   0.692
+  ],
+  [
+   0.75,
+   0.615
+  ],
+  [
+   0.775,
+   0.5
+  ],
+  [
+   0.8,
+   0.423
+  ]
+ ],
+ "cut_off": 0.6,
+ "examples": [
+  {
+   "called": [
+    "log_entry"
+   ],
+   "tools": "ok",
+   "say": "had nasi lemak ayam for lunch",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "log"
+   ],
+   "tools_given": 7
+  },
+  {
+   "called": [
+    "log_entry"
+   ],
+   "tools": "ok",
+   "say": "grab to office rm18",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "log"
+   ],
+   "tools_given": 7
+  },
+  {
+   "called": [
+    "add_task"
+   ],
+   "tools": "ok",
+   "say": "remind me to call mama at 3pm",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "tasks",
+    "brain"
+   ],
+   "tools_given": 10
+  },
+  {
+   "called": [
+    "add_calendar_event"
+   ],
+   "tools": "ok",
+   "say": "aina's birthday is on 3 november",
+   "routing": "ok",
+   "nudged": true,
+   "groups": [
+    "calendar",
+    "brain"
+   ],
+   "tools_given": 9
+  },
+  {
+   "called": [
+    "search_brain"
+   ],
+   "tools": "ok",
+   "say": "what's my gym locker code?",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "brain"
+   ],
+   "tools_given": 5
+  },
+  {
+   "called": [
+    "log_entry",
+    "add_task"
+   ],
+   "tools": "ok",
+   "say": "roti canai and teh o ais, and remind me to pay the bill at 8pm",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "log",
+    "bills",
+    "tasks",
+    "brain"
+   ],
+   "tools_given": 23
+  },
+  {
+   "called": [
+    "add_bill"
+   ],
+   "tools": "ok",
+   "say": "spotify rm16.90 every 15th",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [
+    "log",
+    "bills",
+    "tasks",
+    "brain"
+   ],
+   "tools_given": 23
+  },
+  {
+   "called": [],
+   "tools": "ok",
+   "say": "thank you moss!",
+   "routing": "ok",
+   "nudged": false,
+   "groups": [],
+   "tools_given": 0
+  }
+ ]
+}

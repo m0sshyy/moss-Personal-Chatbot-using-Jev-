@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Moss · Report card</title>
+<meta name="description" content="How well does Moss understand you? Every change sits the same exam: 96 messages in English and Malay plus 26 second-brain questions. Scores, the bug it caught, and how it was fixed.">
+<meta name="theme-color" content="#fff6f9">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://moss-alya.web.app/report-card">
+<meta property="og:title" content="Moss · Report card">
+<meta property="og:description" content="An AI assistant that sits an exam after every change. Scores, the bug it caught, and the fix.">
+<meta property="og:image" content="https://moss-alya.web.app/img/og-report-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff6f9; --bg2: #ffeef4; --card: #ffffff; --ink: #1d1d1f; --muted: #6e6e73; --line: rgba(0,0,0,.07);
+    --pink: #e64980; --pink-d: #c2255c; --blush: #ffdeeb; --soft: #fff0f5; --before: #c9b8c0;
+    --plum: #2a0f1e; --plum2: #44162f; --good: #2b8a3e; --bad: #d03b3b;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 14px 34px rgba(214,51,108,.09);
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+    --serif: "Instrument Serif", "New York", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: var(--pink-d); text-decoration: none; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px; }
+  em.s { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: 0; }
+  .grad { background: linear-gradient(120deg, #f783ac, #e64980 40%, #ae3ec9 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .eyebrow { font-size: 15px; font-weight: 600; color: var(--pink); margin: 0 0 10px; }
+  h1 { font-size: clamp(44px, 8vw, 92px); line-height: .98; letter-spacing: -.05em; margin: 0 0 18px; font-weight: 800; }
+  h2 { font-size: clamp(34px, 5.4vw, 56px); line-height: 1.04; letter-spacing: -.035em; margin: 0 0 14px; font-weight: 700; }
+  .lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 640px; margin: 0 0 36px; }
+  section { padding: 96px 0; }
+  .center { text-align: center; } .center .lead { margin-left: auto; margin-right: auto; }
+  .center > h2:last-child { margin-bottom: 34px; }
+  .card { background: var(--card); border-radius: 30px; box-shadow: var(--shadow); }
+  code { font: 600 .86em var(--mono); background: var(--soft); color: var(--pink-d); border-radius: 7px; padding: 2px 7px; }
+  .reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* nav */
+  .nav { position: sticky; top: 0; z-index: 50; background: rgba(255,246,249,.72); backdrop-filter: saturate(180%) blur(20px);
+         -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+  .logo { font-weight: 700; font-size: 19px; color: var(--ink); letter-spacing: -.02em; }
+  .nav-links { display: flex; gap: 26px; align-items: center; font-size: 13px; }
+  .nav-links a { color: #424245; } .nav-links a:hover { color: var(--pink); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--pink); color: #fff !important; border-radius: 999px;
+          padding: 7px 15px; font-weight: 600; font-size: 13px; transition: transform .2s, background .2s; }
+  .pill:hover { background: var(--pink-d); transform: translateY(-1px); }
+  .pill.ghost { background: transparent; color: var(--pink-d) !important; box-shadow: inset 0 0 0 1.5px var(--pink); }
+  .pill.big { font-size: 17px; padding: 12px 24px; }
+
+  /* hero: the score rings */
+  .hero { padding: 70px 0 60px; position: relative; text-align: center; }
+  .hero::before { content: ""; position: absolute; inset: -10% -20% auto; height: 700px; z-index: -1;
+    background: radial-gradient(40% 50% at 70% 30%, #ffd1e2 0%, transparent 70%), radial-gradient(30% 40% at 25% 20%, #ffe8d6 0%, transparent 70%); }
+  .hero .lead { margin-left: auto; margin-right: auto; }
+  .rings { display: grid; grid-template-columns: 1.3fr repeat(3, 1fr); gap: 16px; align-items: stretch; max-width: 940px; margin: 0 auto; }
+  .ring-card { padding: 22px 14px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; transition: transform .3s; }
+  .ring-card:hover { transform: translateY(-4px); }
+  .ring { position: relative; width: 116px; aspect-ratio: 1; }
+  .ring.main { width: 178px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 10; }
+  .ring .track { stroke: var(--blush); }
+  .ring .arc { stroke: url(#pinkGrad); stroke-linecap: round; stroke-dasharray: 0 999; transition: stroke-dasharray 1.6s cubic-bezier(.2,.7,.2,1); }
+  .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 27px; letter-spacing: -.04em; }
+  .ring.main b { font-size: 50px; }
+  .ring-card h3 { margin: 0; font-size: 16px; } .ring-card p { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 190px; }
+  .ring-card.main-card { background: linear-gradient(160deg, #fff, #fff0f5); }
+  .meta { margin-top: 22px; color: var(--muted); font-size: 14px; }
+
+  /* watch it think */
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 auto 28px; max-width: 820px; }
+  .chip { padding: 8px 14px; border-radius: 999px; background: #fff; box-shadow: var(--shadow); font-size: 14px; font-weight: 500; transition: all .2s; }
+  .chip:hover { transform: translateY(-2px); }
+  .chip.on { background: var(--pink); color: #fff; }
+  .pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; max-width: 980px; margin: 0 auto; position: relative; }
+  .stage { padding: 18px 16px 20px; opacity: .45; transform: scale(.97); transition: all .45s cubic-bezier(.2,.8,.2,1); position: relative; }
+  .stage.on { opacity: 1; transform: none; }
+  .stage .head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; margin-bottom: 10px; }
+  .stage .head i { font-style: normal; width: 34px; height: 34px; border-radius: 11px; background: var(--soft); display: grid; place-items: center; font-size: 18px; }
+  .stage.on .head i { background: var(--pink); }
+  .stage:not(:last-child)::after { content: "›"; position: absolute; right: -11px; top: 50%; transform: translateY(-50%); color: var(--pink); font-size: 22px; font-weight: 700; z-index: 2; }
+  .bubble { background: #ffcfe0; border-radius: 17px 17px 5px 17px; padding: 9px 12px; font-size: 14.5px; line-height: 1.38; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { background: var(--soft); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; color: var(--pink-d); }
+  .small { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .net { margin-top: 10px; background: #fff4e6; border-radius: 12px; padding: 8px 10px; font-size: 12.5px; color: #8a4b08; }
+  .grade { font-size: 40px; line-height: 1; margin: 2px 0 6px; }
+  .grade-t { font-weight: 700; color: var(--good); }
+
+  /* the bug */
+  .bug { display: grid; grid-template-columns: .9fr 1.1fr; gap: 40px; align-items: start; }
+  .bug > .reveal:first-child { position: sticky; top: 90px; }
+  .chat { padding: 18px 16px; background: #fbeef3; border-radius: 34px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+  .chat .who { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .chat .b { max-width: 85%; padding: 8px 12px; border-radius: 17px; font-size: 14.5px; line-height: 1.38; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+  .chat .me { align-self: flex-end; background: #ffcfe0; border-bottom-right-radius: 5px; }
+  .chat .bot { align-self: flex-start; background: #fff; border-bottom-left-radius: 5px; }
+  .stamp { align-self: flex-end; margin: 6px 4px 2px 0; transform: rotate(-6deg) scale(1.4); opacity: 0; transition: all .5s cubic-bezier(.2,1.4,.4,1);
+           border: 3px solid var(--bad); color: var(--bad); border-radius: 10px; padding: 4px 10px; font-weight: 800; font-size: 15px; background: rgba(255,255,255,.85); }
+  .stamp.in { opacity: 1; transform: rotate(-6deg) scale(1); }
+  .fixes { display: grid; gap: 10px; margin: 18px 0 26px; }
+  .fix { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 20px; padding: 13px 15px; box-shadow: var(--shadow); font-size: 15px; }
+  .fix i { font-style: normal; font-size: 22px; } .fix b { display: block; }
+  .fix span { color: var(--muted); font-size: 14px; }
+
+  /* before / after */
+  .ba { padding: 22px 22px 18px; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--before); }
+  .legend span.after::before { background: var(--pink); }
+  .legend em { margin-left: auto; font-style: normal; }
+  .ba-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; padding: 7px 0; }
+  .ba-row .name { font-size: 14px; font-weight: 600; }
+  .bars { display: grid; gap: 4px; }
+  .bar { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+  .bar i { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--before); width: 0; transition: width 1.2s cubic-bezier(.2,.7,.2,1); }
+  .bar.after i { background: var(--pink); } .bar.after { color: var(--ink); font-weight: 700; }
+
+  /* cut-off */
+  .cut { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: stretch; }
+  .plot { padding: 20px 20px 16px; }
+  .plot svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .plot .axis { font: 11px var(--sans); fill: #a8939c; }
+  .slider { width: 100%; margin: 14px 0 4px; accent-color: var(--pink); }
+  .readout { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .readout b { font-size: 28px; letter-spacing: -.03em; }
+  .readout span { color: var(--muted); font-size: 14px; }
+  .side { display: grid; gap: 12px; }
+  .side .card { padding: 18px 18px; font-size: 15px; transition: all .3s; }
+  .side .card.lit { box-shadow: 0 0 0 2.5px var(--pink), var(--shadow); }
+  .side .card b { display: block; font-size: 16px; margin-bottom: 2px; }
+  .side .card span { color: var(--muted); font-size: 14px; }
+
+  /* numbers */
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .num { padding: 26px 22px; }
+  .num b { font-size: clamp(38px, 5vw, 54px); letter-spacing: -.045em; line-height: 1; display: block; margin-bottom: 8px; }
+  .num h3 { margin: 0 0 4px; font-size: 17px; } .num p { margin: 0; color: var(--muted); font-size: 14px; }
+  .trend { padding: 20px 22px 14px; margin-top: 14px; }
+  .trend svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .trend h3 { margin: 0 0 6px; font-size: 16px; }
+  .trend .axis { font: 11px var(--sans); fill: #a8939c; }
+
+  /* how */
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .how .card { padding: 22px; } .how i { font-style: normal; font-size: 30px; }
+  .how b { display: block; font-size: 17px; margin: 8px 0 4px; } .how span { color: var(--muted); font-size: 15px; }
+
+  footer { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0 70px; }
+  footer .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+
+  @media (max-width: 900px) {
+    .rings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .main-card { grid-column: 1 / -1; }
+    .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stage:nth-child(2)::after { display: none; }
+    .bug, .cut { grid-template-columns: 1fr; }
+    .nums { grid-template-columns: repeat(2, 1fr); }
+    .how { grid-template-columns: 1fr; }
+    section { padding: 72px 0; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    .nav-links a:not(.pill) { display: none; }
+    .rings { gap: 10px; }
+    .ring { width: 78px; } .ring b { font-size: 21px; }
+    .ring-card { padding: 16px 6px; } .ring-card h3 { font-size: 13.5px; } .ring-card p { display: none; }
+    .pipe { grid-template-columns: 1fr; }
+    .stage { min-height: 0; } .stage::after { display: none; }
+    .ba-row { grid-template-columns: 88px 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="pinkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f783ac"/><stop offset=".55" stop-color="#e64980"/><stop offset="1" stop-color="#ae3ec9"/></linearGradient></defs>
+</svg>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="logo" href="/">🌿 Moss</a>
+    <div class="nav-links">
+      <a href="#think">Watch it think</a><a href="#bug">The bug</a><a href="#cutoff">Cut-off</a>
+      <a class="pill" href="/">← Back to Moss</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="eyebrow">Report card 📊</p>
+      <h1>How well does Moss <em class="s grad">understand</em> you?</h1>
+      <p class="lead">After every change, Moss sits the same exam. <span id="exam-size">96 messages in English and Malay, plus 26 questions for its second brain.</span></p>
+    </div>
+    <div class="rings reveal">
+      <div class="card ring-card main-card">
+        <div class="ring main"><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52" data-k="overall"/></svg><b class="grad" data-v="overall">–</b></div>
+        <h3>Overall</h3><p>The average of the three scores.</p>
+      </div>
+      <div class="card ring-card">
+        <div class="ring"><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52" data-k="routing"/></svg><b data-v="routing">–</b></div>
+        <h3>🧭 Routing</h3><p>Did the right tools reach the AI?</p>
+      </div>
+      <div class="card ring-card">
+        <div class="ring"><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52" data-k="tools"/></svg><b data-v="tools">–</b></div>
+        <h3>🛠️ Doing it</h3><p>Did it actually do what you asked?</p>
+      </div>
+      <div class="card ring-card">
+        <div class="ring"><svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="arc" cx="60" cy="60" r="52" data-k="brain"/></svg><b data-v="brain">–</b></div>
+        <h3>📚 Memory</h3><p>Did it find the right saved note?</p>
+      </div>
+    </div>
+    <p class="meta" id="meta"></p>
+  </div>
+</header>
+
+<section id="think" style="padding-top:40px">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="eyebrow">Real exam answers</p>
+      <h2>Watch it <em class="s">think.</em></h2>
+      <p class="lead">Tap a message.</p>
+    </div>
+    <div class="examples reveal" id="examples" role="tablist" aria-label="Exam messages"></div>
+    <div class="pipe reveal" aria-live="polite">
+      <div class="card stage" id="st0"><div class="head"><i>💬</i>You say</div><div class="bubble" id="say"></div></div>
+      <div class="card stage" id="st1"><div class="head"><i>🧭</i>Jev routes</div><div class="tags" id="groups"></div><div class="small" id="given"></div></div>
+      <div class="card stage" id="st2"><div class="head"><i>✨</i>Gemini acts</div><div class="tags" id="called"></div><div id="net"></div></div>
+      <div class="card stage" id="st3"><div class="head"><i>📝</i>Marked</div><div class="grade" id="grade"></div><div class="grade-t" id="grade-t"></div><div class="small" id="grade-s"></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="bug" style="background:linear-gradient(var(--bg), var(--bg2))">
+  <div class="wrap bug">
+    <div class="reveal">
+      <div class="chat" id="bugchat">
+        <div class="who">Moss ౨ৎ · before the fix</div>
+        <div class="b me">aina's birthday is on 3 november</div>
+        <div class="b bot">🎀 I've added Aina's birthday to your calendar, with a reminder the day before! 🎂<br><br>📅 Added: Aina's Birthday, Tue 3 Nov</div>
+        <div class="stamp" id="stamp">NOTHING WAS SAVED</div>
+      </div>
+    </div>
+    <div class="reveal">
+      <p class="eyebrow">The bug the exam caught</p>
+      <h2>It said it. <em class="s">It didn't do it.</em></h2>
+      <p class="lead" style="margin-bottom:0">Sometimes the AI promised "Added!" without calling the tool. In a normal chat, you'd never notice.</p>
+      <div class="fixes">
+        <div class="fix"><i>📜</i><p style="margin:0"><b>A golden rule</b><span>Only a tool call saves anything. Never just say it.</span></p></div>
+        <div class="fix"><i>🛟</i><p style="margin:0"><b>A safety net in code</b><span>A reply that claims "added" with no tool call is sent back once to do it for real.</span></p></div>
+        <div class="fix"><i>🧭</i><p style="margin:0"><b>Clearer routing</b><span>"grab rm18" is spending, not a setting.</span></p></div>
+      </div>
+      <div class="card ba" id="ba">
+        <div class="legend"><span>First exam</span><span class="after">Now</span><em>bars start at 50%</em></div>
+        <div id="ba-rows"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cutoff">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="eyebrow">Tuning the second brain</p>
+      <h2>How sure is <em class="s">sure enough?</em></h2>
+      <p class="lead">Moss only uses a saved note if it matches the question closely enough. Slide to pick that cut-off.</p>
+    </div>
+    <div class="cut reveal">
+      <div class="card plot">
+        <svg id="sweep" viewBox="0 0 560 230" role="img" aria-label="Share of second-brain questions answered right at each cut-off"></svg>
+        <input class="slider" id="slider" type="range" min="0" max="16" step="1" value="8" aria-label="Cut-off">
+        <div class="readout"><b id="ro-score">–</b><span id="ro-text"></span></div>
+      </div>
+      <div class="side">
+        <div class="card" id="low"><b>🙈 Too low</b><span>Finds junk. "Chocolate cake" pulls up your detox juice recipe.</span></div>
+        <div class="card" id="mid"><b>🎯 Just right</b><span>Picked from this chart, not by guessing.</span></div>
+        <div class="card" id="high"><b>🙉 Too high</b><span>Misses real notes. "What does a waterfall plot show?" finds nothing.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="eyebrow">Speed &amp; cost</p>
+      <h2>Fast, and <em class="s">frugal.</em></h2>
+    </div>
+    <div class="nums">
+      <div class="card num reveal"><b class="grad" id="n-jev">–</b><h3>Jev decides</h3><p>Which kinds of tools a message needs.</p></div>
+      <div class="card num reveal"><b class="grad" id="n-gem">–</b><h3>Gemini answers</h3><p>The middle of all exam replies.</p></div>
+      <div class="card num reveal"><b class="grad" id="n-tools">–</b><h3>Tools per message</h3><p id="n-tools-p">Out of all of them. Smaller prompts cost less.</p></div>
+      <div class="card num reveal"><b class="grad" id="n-safe">–</b><h3>Routed safely</h3><p>Never left a needed tool out.</p></div>
+    </div>
+    <div class="card trend reveal">
+      <h3>📈 Overall, exam by exam</h3>
+      <svg id="trend" viewBox="0 0 560 150" role="img" aria-label="Overall score for each exam run"></svg>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="eyebrow">The exam</p>
+      <h2>How it's <em class="s">marked.</em></h2>
+    </div>
+    <div class="how">
+      <div class="card reveal"><i>📝</i><b>Made-up messages</b><span>Everyday chat in English and Malay: food, money, tasks, calendar, small talk. Nothing private.</span></div>
+      <div class="card reveal"><i>👀</i><b>Checked, never run</b><span>The AI's tool calls are marked, not carried out. Sitting the exam saves nothing.</span></div>
+      <div class="card reveal"><i>📈</i><b>Every change, re-tested</b><span>New prompt, new model, new router question: same exam, so the numbers can be compared.</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="ctas"><a class="pill big" href="/">← Back to Moss</a><a class="pill big ghost" href="https://github.com/m0sshyy/moss-Personal-Chatbot-using-Jev-">See the code</a></div>
+  Designed &amp; built by Alya 🎀 · 2026<br>
+  <a href="privacy">Privacy policy</a>
+</footer>
+
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = s => document.querySelector(s);
+  const pct = v => Math.round(v * 100) + "%";
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const KINDS = { log: "🍱 Log it", history: "📈 Look up", work: "💼 Work", bills: "🧾 Bills", tasks: "📝 Tasks",
+                  calendar: "📅 Calendar", settings: "⚙️ Settings", brain: "📚 Second brain", all: "🤔 Unsure: all tools" };
+  const TOOL = { log_entry: "💾 log_entry", add_task: "📝 add_task", add_calendar_event: "📅 add_calendar_event",
+                 search_brain: "📚 search_brain", add_bill: "🧾 add_bill" };
+  const LABEL = { "had nasi lemak ayam for lunch": "🍛 Nasi lemak", "grab to office rm18": "🚗 Grab RM18",
+                  "remind me to call mama at 3pm": "⏰ Call mama", "aina's birthday is on 3 november": "🎂 A birthday",
+                  "what's my gym locker code?": "🔐 Locker code", "spotify rm16.90 every 15th": "🎧 Spotify",
+                  "roti canai and teh o ais, and remind me to pay the bill at 8pm": "🫓 Two jobs", "thank you moss!": "🌸 Thank you" };
+
+  // reveal on scroll
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15 });
+  document.querySelectorAll(".reveal").forEach(e => io.observe(e));
+
+  fetch("report-card.json").then(r => r.json()).then(draw);
+
+  function draw(D) {
+    // ---- rings --------------------------------------------------------------
+    const C = 2 * Math.PI * 52;
+    const ringIO = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      ringIO.disconnect();
+      document.querySelectorAll(".arc").forEach(a => a.style.strokeDasharray = (D.after[a.dataset.k] * C) + " 999");
+      document.querySelectorAll("[data-v]").forEach(b => countTo(b, D.after[b.dataset.v] * 100));
+    }), { threshold: .3 });
+    ringIO.observe($(".rings"));
+    $("#exam-size").textContent = D.messages + " messages in English and Malay, plus " + D.brain_questions + " questions for its second brain.";
+    const when = new Date(D.run_at.replace(" ", "T") + ":00+08:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    $("#meta").textContent = "Latest exam: " + when + " · " + D.models.chat + " · routed by Jev";
+
+    // ---- watch it think -----------------------------------------------------
+    const box = $("#examples");
+    let timers = [];
+    D.examples.forEach((ex, i) => {
+      const chip = el("button", "chip", LABEL[ex.say] || ex.say);
+      chip.setAttribute("role", "tab");
+      chip.onclick = () => { box.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c === chip)); play(ex); };
+      box.append(chip);
+      if (i === 0) setTimeout(() => chip.click(), 300);
+    });
+    function play(ex) {
+      timers.forEach(clearTimeout); timers = [];
+      const st = [0, 1, 2, 3].map(i => $("#st" + i));
+      st.forEach(s => s.classList.remove("on"));
+      $("#say").textContent = ex.say;
+      $("#groups").replaceChildren(...(ex.groups.length ? ex.groups.map(g => el("span", "tag", KINDS[g] || g)) : [el("span", "tag", "💬 Just chat")]));
+      $("#given").textContent = ex.groups.length ? ex.tools_given + " of " + D.all_tools + " tools go to Gemini" : "No tools needed: a cheaper, faster reply";
+      $("#called").replaceChildren(...(ex.called.length ? ex.called.map(t => el("span", "tag", TOOL[t] || t)) : [el("span", "tag", "💌 Just replies")]));
+      $("#net").replaceChildren(...(ex.nudged ? [el("div", "net", "🛟 First it only said “Added!”. The safety net sent it back, and then it really did it.")] : []));
+      const right = ex.routing !== "miss" && ex.tools === "ok";
+      $("#grade").textContent = right ? "✅" : "❌";
+      $("#grade-t").textContent = right ? "Right" : "Wrong";
+      $("#grade-t").style.color = right ? "var(--good)" : "var(--bad)";
+      $("#grade-s").textContent = right ? (ex.called.length > 1 ? "Both jobs done in one go." : ex.called.length ? "The right tool, first try." : "No tool, as it should be.") : "";
+      st.forEach((s, i) => timers.push(setTimeout(() => s.classList.add("on"), reduce ? 0 : 120 + i * 520)));
+    }
+
+    // ---- before / after -----------------------------------------------------
+    const rows = [["Overall", "overall"], ["🧭 Routing", "routing"], ["🛠️ Doing it", "tools"], ["📚 Memory", "brain"]];
+    $("#ba-rows").replaceChildren(...rows.map(([name, k]) => {
+      const row = el("div", "ba-row"), bars = el("div", "bars");
+      row.append(el("div", "name", name));
+      for (const [cls, v] of [["bar", D.before[k]], ["bar after", D.after[k]]]) {
+        const bar = el("div", cls), fill = el("i");
+        bar.append(fill, el("span", "", pct(v)));
+        fill.dataset.w = (v * 100 - 50) * 2;  // 50-100% fills the bar: the differences are a few points
+        bars.append(bar);
+      }
+      row.append(bars);
+      return row;
+    }));
+    const growIO = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      growIO.disconnect();
+      document.querySelectorAll("#ba-rows i").forEach(i => i.style.width = "calc((100% - 44px) * " + i.dataset.w / 100 + ")");
+      setTimeout(() => $("#stamp").classList.add("in"), reduce ? 0 : 500);
+    }), { threshold: .4 });
+    growIO.observe($("#ba"));
+
+    // ---- cut-off sweep -------------------------------------------------------
+    const plot = $("#sweep");
+    const W = Math.max(300, plot.clientWidth || 560), H = W < 450 ? 200 : 230, L = 38, R = 12, T = 22, B = 30;
+    plot.setAttribute("viewBox", "0 0 " + W + " " + H);
+    const xs = D.sweep.map(p => p[0]), x = t => L + (t - xs[0]) / (xs[xs.length - 1] - xs[0]) * (W - L - R);
+    const y = v => T + (1 - v) * (H - T - B);
+    for (const v of [0, .5, 1]) {
+      plot.append(svg("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "#f1edef" }));
+      plot.append(Object.assign(svg("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end", class: "axis" }), { textContent: v * 100 + "%" }));
+    }
+    for (const t of [.4, .5, .6, .7, .8]) plot.append(Object.assign(svg("text", { x: x(t), y: H - 8, "text-anchor": "middle", class: "axis" }), { textContent: t.toFixed(1) }));
+    const line = D.sweep.map((p, i) => (i ? "L" : "M") + x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1)).join("");
+    const grad = svg("linearGradient", { id: "area", x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.append(svg("stop", { offset: 0, "stop-color": "#e64980", "stop-opacity": .22 }), svg("stop", { offset: 1, "stop-color": "#e64980", "stop-opacity": 0 }));
+    const defs = svg("defs", {}); defs.append(grad); plot.append(defs);
+    plot.append(svg("path", { d: line + "L" + x(xs[xs.length - 1]) + "," + y(0) + "L" + x(xs[0]) + "," + y(0) + "Z", fill: "url(#area)" }));
+    plot.append(svg("path", { d: line, fill: "none", stroke: "#e64980", "stroke-width": 2.5, "stroke-linejoin": "round" }));
+    const now = xs.findIndex(t => Math.abs(t - D.cut_off) < 1e-6);
+    plot.append(Object.assign(svg("text", { x: x(D.cut_off), y: y(D.sweep[now][1]) - 14, "text-anchor": "middle", class: "axis", style: "fill:#c2255c;font-weight:700" }), { textContent: "Moss uses this" }));
+    const guide = svg("line", { y1: T, y2: H - B, stroke: "#c2255c", "stroke-dasharray": "4 4", "stroke-width": 1.5 });
+    const dot = svg("circle", { r: 7, fill: "#e64980", stroke: "#fff", "stroke-width": 3 });
+    plot.append(guide, dot);
+    const slider = $("#slider");
+    slider.max = xs.length - 1; slider.value = now;
+    const best = Math.max(...D.sweep.map(p => p[1]));
+    function move() {
+      const [t, v] = D.sweep[+slider.value];
+      guide.setAttribute("x1", x(t)); guide.setAttribute("x2", x(t));
+      dot.setAttribute("cx", x(t)); dot.setAttribute("cy", y(v));
+      $("#ro-score").textContent = pct(v) + " right";
+      $("#ro-text").textContent = "at a cut-off of " + t.toFixed(3).replace(/0+$/, "").replace(/\.$/, "") + (v === best ? " · the best ✨" : "");
+      const zone = v === best ? "mid" : t < D.cut_off ? "low" : "high";
+      ["low", "mid", "high"].forEach(id => $("#" + id).classList.toggle("lit", id === zone));
+    }
+    slider.oninput = move; move();
+
+    // ---- numbers + trend ---------------------------------------------------------
+    $("#n-jev").textContent = (D.speed.jev_ms / 1000).toFixed(2) + " s";
+    $("#n-gem").textContent = (D.speed.gemini_ms / 1000).toFixed(1) + " s";
+    $("#n-tools").textContent = Math.round(D.avg_tools) + " / " + D.all_tools;
+    $("#n-safe").textContent = pct(D.safe);
+    const trend = $("#trend");
+    const hs = D.history, tw = Math.max(300, trend.clientWidth || 560), th = 150, tl = 34, tr = 34, tt = 26, tb = 24;
+    trend.setAttribute("viewBox", "0 0 " + tw + " " + th);
+    const tx = i => hs.length > 1 ? tl + i / (hs.length - 1) * (tw - tl - tr) : tw / 2;
+    const lo = Math.min(...hs.map(h => h.overall)) - .02, hi = Math.min(1, Math.max(...hs.map(h => h.overall)) + .02);
+    const ty = v => tt + (1 - (v - lo) / (hi - lo)) * (th - tt - tb);
+    trend.append(svg("path", { d: hs.map((h, i) => (i ? "L" : "M") + tx(i) + "," + ty(h.overall)).join(""), fill: "none", stroke: "#e64980", "stroke-width": 2.5 }));
+    hs.forEach((h, i) => {
+      const g = svg("g", {});
+      g.append(svg("circle", { cx: tx(i), cy: ty(h.overall), r: 6, fill: "#e64980", stroke: "#fff", "stroke-width": 2.5 }));
+      const label = svg("text", { x: tx(i), y: ty(h.overall) - 12, "text-anchor": "middle", class: "axis", style: "font-size:12px;fill:#1d1d1f;font-weight:600" });
+      label.textContent = pct(h.overall);
+      const run = svg("text", { x: tx(i), y: th - 4, "text-anchor": "middle", class: "axis" });
+      run.textContent = i === 0 ? "first" : "run " + (i + 1);
+      const tip = svg("title", {}); tip.textContent = h.run_at + " · " + pct(h.overall) + " overall";
+      g.append(label, run, tip);
+      trend.append(g);
+    });
+  }
+
+  function countTo(node, end) {
+    const t0 = performance.now(), dur = reduce ? 1 : 1500;
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      node.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))) + "%";
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+})();
+</script>
+</body>
+</html>

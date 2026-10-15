@@ -121,3 +121,54 @@ def test_too_long_voice_notes_are_refused(monkeypatch):
     update = FakeVoiceUpdate(duration=MosshyBot.MAX_VOICE_SECONDS + 1)
     asyncio.run(MosshyBot.on_voice(update, None))
     assert "too long" in update.replies[0] or "bit long" in update.replies[0]
+
+
+# --- Safety net: "I've added it" without calling a tool -----------------------------------
+def test_claims_without_doing():
+    assert MosshyBot.claims_without_doing("🎀 I've added Aina's birthday to your calendar!", False)
+    assert MosshyBot.claims_without_doing("📅 Added: Aina's birthday, Tue 3 Nov", False)
+    assert MosshyBot.claims_without_doing("I'll save 8,000 steps as your new goal!", False)
+    assert MosshyBot.claims_without_doing("Let me update your weather place right away", False)
+    assert MosshyBot.claims_without_doing("🎀 Adding that right away for you, Alya!", False)
+    assert not MosshyBot.claims_without_doing("🎀 I've added it!", True)          # a tool did run
+    assert not MosshyBot.claims_without_doing("You're welcome Alya! 🌸", False)
+    assert not MosshyBot.claims_without_doing("Let me know if you need anything ♡", False)
+
+
+class FakeChat:
+    """A Gemini chat that first only *says* it saved, then (when told) calls the tool."""
+    def __init__(self, replies):
+        self.replies, self.history, self.sent = replies, [], []
+
+    async def send_message(self, message, config=None):
+        self.sent.append((message, config))
+        text, called = self.replies.pop(0)
+        self.history.append(SimpleNamespace(role="user", parts=[SimpleNamespace(function_call=None)]))
+        if called:
+            self.history.append(SimpleNamespace(role="model", parts=[SimpleNamespace(function_call=called)]))
+        self.history.append(SimpleNamespace(role="model", parts=[SimpleNamespace(function_call=None)]))
+        return SimpleNamespace(text=text)
+
+    def get_history(self, curated=True):
+        return list(self.history)
+
+
+def use_fake_chat(monkeypatch, chat):
+    monkeypatch.setattr(MosshyBot, "get_conversation", lambda chat_id: chat)
+    monkeypatch.setattr(MosshyBot, "conversations", {})              # leave no fake chat behind
+    monkeypatch.setattr(MosshyBot.chat_memory, "save", lambda chat_id, history: [])
+
+
+def test_an_empty_promise_is_sent_back_to_do_it(monkeypatch):
+    chat = FakeChat([("📅 Added: Aina's birthday", None), ("📅 Added: Aina's birthday ✨", "add_calendar_event")])
+    use_fake_chat(monkeypatch, chat)
+    response = asyncio.run(MosshyBot.send_to_gemini(42, "aina's birthday is 3 nov", set()))
+    assert response.text.endswith("✨") and len(chat.sent) == 2
+    assert chat.sent[1] == (MosshyBot.DO_IT_NOW, MosshyBot.chat_config)  # with every tool
+
+
+def test_a_real_action_is_not_asked_twice(monkeypatch):
+    chat = FakeChat([("📅 Added: Aina's birthday", "add_calendar_event")])
+    use_fake_chat(monkeypatch, chat)
+    asyncio.run(MosshyBot.send_to_gemini(42, "aina's birthday is 3 nov", None))
+    assert len(chat.sent) == 1

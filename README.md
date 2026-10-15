@@ -104,6 +104,7 @@ in `MosshyBot.py`). Just talk to it like a friend. It works out what to save:
 | "my water goal is 2.5L a day" | Saves a goal to compare against |
 | "how much did I spend this week?" | Looks it up |
 | "Python class Thursday 2-4pm" | Adds it to Google Calendar (after setup below) |
+| 📄 a PDF, "save this https://...", "remember that my locker code is 1408" | Saves it to your second brain. Later ask "what did that article say about RAG?" and it answers from your saved stuff, with sources. `/brain` lists them |
 | "Aisyah's birthday is 2 Nov, every year" | Yearly all-day event, reminder the day before |
 | "class every Thursday 2-4pm until 18 Dec" | Weekly repeating event |
 | "what's on tomorrow?", "move my dentist to Friday 3pm" | Reads / changes your calendar |
@@ -385,10 +386,68 @@ Your last reply is passed as context, so follow-ups like "ok" / "yes, all of the
 still get the tools they need. Jev's decisions show in the Cloud Run logs
 ("Jev 290 ms: {...} -> ['log']").
 
+## Second brain (RAG)
+Notes, links, PDFs and screenshots you save, searchable by meaning (`brain.py`):
+
+1. **Saving** cuts the text into ~1,500-character pieces that overlap a little,
+   and Gemini (`gemini-embedding-2`) turns each piece into an *embedding*: 768
+   numbers describing what it means. Stored in Firestore `brain` (one document
+   per saved thing) and `brain_chunks` (the pieces).
+2. **Asking** turns the question into an embedding too, and Firestore vector
+   search finds the closest pieces (cosine similarity). Pieces below
+   `MIN_MATCH` (0.6) are about something else and are dropped.
+3. **Answering**: Gemini gets only those pieces and cites them like [1], [2],
+   ending with the sources, so you can check where each fact came from.
+
+Scanned PDFs (pictures of pages) are read by Gemini; pages that need JavaScript
+are read with Gemini's URL tool. Jev has a question for this too ("save or ask
+about saved things?").
+
+One-time setup: the vector index (already done for this project):
+```
+gcloud firestore indexes composite create --collection-group=brain_chunks --query-scope=COLLECTION --field-config=field-path=embedding,vector-config='{"dimension":"768","flat":"{}"}'
+```
+
+## Report card (measuring Moss)
+`report_card.py` gives Moss an exam (`report_card_cases.py`: ~100 made-up messages
+in English and Malay, plus 26 second-brain questions) and scores three things:
+
+| Score | Question it answers |
+|-------|---------------------|
+| 🧭 Routing (Jev) | Did Gemini get the tools the message needs? (also: how many of the 36 tools, on average) |
+| 🛠️ Tool choice (Gemini) | Was Gemini's first move right? Its tool calls are only checked, never run, so the exam saves nothing |
+| 📚 Second brain | Does search find the right saved thing, and nothing when nothing saved answers? Tried at every cut-off from 0.40 to 0.80 to pick `MIN_MATCH` from evidence |
+
+```
+.venv\Scripts\python report_card.py            # about 1 minute, a few sen
+.venv\Scripts\python report_card.py --no-save  # try a change without keeping the result
+```
+Each run is kept in Firestore `report_cards`, and shows at the bottom of the
+dashboard (scores, the cut-off chart, what it got wrong, and the trend run by run)
+and with `/reportcard`. Run it before and after changing a prompt, a model or Jev's
+questions, so you know whether the change helped. Scores move a point or two
+between runs, because the AI's answers vary slightly each time.
+
+What the first round of fixes did (2026-10-15), from the same exam:
+
+| | Before | After |
+|---|---|---|
+| Overall | 93% | 96% |
+| 🧭 Routing (Jev) | 93% right, 98% safe | 95% right, 100% safe |
+| 🛠️ Tool choice (Gemini) | 95% | 100% |
+| 📚 Second brain | 92% | 92% (0.6 is already the best cut-off; 1536-number embeddings were tested and only won by luck) |
+
+The fixes: a "golden rule" in Moss's instructions (only a tool call saves anything),
+clearer Jev questions for money, tasks and the second brain, and a safety net in
+`send_to_gemini`: a reply that claims "I've added it" with no tool call is sent back
+once, with every tool, to do it for real.
+
 ## Files
 | File | What it is |
 |------|------------|
 | `jev_router.py` | Asks Jev which tools Gemini needs for each message |
+| `brain.py` | Second brain: saves notes, links and files as embeddings and searches them (RAG) |
+| `report_card.py`, `report_card_cases.py` | Moss's exam and its scores (see "Report card") |
 | `dashboard.py` | The web dashboard: one-time login links, the charts page and its data |
 | `bills.py` | Bills & subscriptions: due dates, paid status, reminders |
 | `drafts.py` | Writes log book entries and supervisor reports from your work notes |
@@ -418,10 +477,3 @@ If `.venv` ever breaks (e.g. after moving or renaming the folder), rebuild it:
 ```
 Remove-Item -Recurse -Force .venv; python -m venv .venv; .venv\Scripts\python -m pip install -r requirements.txt
 ```
-
-
-- iOS integration: Siri Shortcuts and Apple Health data sent to the cloud bot through an
-  authenticated webhook, with idempotent daily upserts
-- Model routing: a small "System One" decision model (TypeSafe Jev) picks tools per
-  message for the LLM, measured at 36% fewer prompt tokens, with a safe fallback
-- Secrets handling, access control, privacy-first data handling

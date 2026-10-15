@@ -27,6 +27,7 @@ Stop it with:  Ctrl + C
 import asyncio
 import logging
 import os
+import re
 import sys
 from contextlib import asynccontextmanager
 from datetime import time
@@ -42,6 +43,7 @@ from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, Con
                           MessageHandler, filters)
 
 import bills
+import brain
 import chat_memory
 import dashboard
 import drafts
@@ -50,6 +52,7 @@ import google_calendar
 import jev_router
 import period
 import weather
+import report_card
 import reports
 import tracker
 
@@ -93,6 +96,11 @@ chatting with your owner on Telegram. The owner lives in Malaysia (timezone
 Asia/Kuala_Lumpur, currency RM) and may mix English and Malay. Each message starts
 with the current date and time in [brackets]; use it to work out "today",
 "yesterday", "last week".
+
+Golden rule: saving, adding, changing or deleting ANYTHING happens only by calling
+the tool for it. Call the tool first, then confirm from its result. Never say "I've
+added / saved / logged / set / updated it" without a tool call that succeeded in
+this reply, and never write a tool call out as text.
 
 Your main jobs:
 1. Tracking — whenever the owner mentions something they ate, drank, took,
@@ -191,6 +199,21 @@ Your main jobs:
    "💧 Water" button with +250/+500/+1000 ml.)
 6. General help — answer questions, summarise text, give advice. For health
    topics be supportive and practical, and suggest a doctor for anything worrying.
+6b. Second brain — the owner saves notes, links, PDFs and screenshots to ask
+   about later. "Remember that...", "save this note" -> save_note in their own
+   words. A link to keep ("save this", or a link sent with nothing else) ->
+   save_link. A photo of notes, slides or a screenshot they ask you to save:
+   write out ALL its text and save_note it. PDFs and text files sent as files
+   are saved automatically. When they ask about something they saved, or ask
+   something their notes could answer ("what did that article say about...",
+   "explain SHAP from my notes", "what's my locker code?"): search_brain first,
+   answer ONLY from what it returns, cite like [1], and end with
+   "📚 Sources:" and the titles (and links). If nothing matches, say so before
+   answering from general knowledge. General knowledge questions ("what's the
+   difference between AI and ML?") are answered directly, without searching,
+   unless they mention their notes, lectures or something they saved.
+   "What have I saved?" -> list_brain (or
+   /brain). "Forget X" -> forget_brain_item.
 
 {calendar}
 {owner}
@@ -243,7 +266,7 @@ gemini = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(
 # everyday logging much faster. Reports still use full thinking.
 chat_config = types.GenerateContentConfig(
     system_instruction=SYSTEM_INSTRUCTION,
-    tools=(tracker.TOOLS + period.TOOLS + drafts.TOOLS + bills.TOOLS + weather.TOOLS
+    tools=(tracker.TOOLS + period.TOOLS + drafts.TOOLS + bills.TOOLS + weather.TOOLS + brain.TOOLS
            + (google_calendar.TOOLS if CALENDAR_ON else [])),
     thinking_config=types.ThinkingConfig(thinking_level="low"))
 
@@ -353,26 +376,53 @@ def previous_reply(chat_id: int) -> str:
     return ""
 
 
+# Safety net: sometimes Gemini SAYS it did something ("📅 Added: Aina's birthday")
+# without calling the tool, so nothing was saved. The report card caught this
+# (report_card.py). Such a reply gets sent back once, with every tool, to do it for real.
+CLAIMS_DONE = re.compile(
+    r"\b(i'?ve|i have|i just|just)\b[^.!?\n]{0,30}\b(added|saved|logged|set|updated|changed|moved|"
+    r"deleted|removed|ticked|marked)\b"
+    r"|\b(i'?ll|i will|let me)\b[^.!?\n]{0,20}\b(add|save|log|set|update|change|move|delete|remove|tick|mark)\b"
+    r"|\b(adding|saving|logging|setting|updating|deleting|removing)\b[^.!?\n]{0,25}\b(right away|now|for you)\b"
+    r"|📅 added|✅ logged|✅ saved|✅ added", re.IGNORECASE)
+DO_IT_NOW = ("(System note: your reply says you did something, but no tool was called, so nothing was "
+             "saved or changed. Call the right tool now, then confirm. If it was already done earlier "
+             "in our chat, just answer again without calling anything.)")
+
+
+def called_a_tool(contents) -> bool:
+    return any(part.function_call for content in contents if content.role == "model"
+               for part in content.parts or [])
+
+
+def claims_without_doing(text: str | None, called: bool) -> bool:
+    return not called and bool(CLAIMS_DONE.search(text or ""))
+
+
 async def send_to_gemini(chat_id: int, message, tool_names: set[str] | None = None):
     """Send to the fast model; if it's busy or down, retry once with the smart model.
     tool_names limits which tools Gemini gets for this message (None = all)."""
     chat = get_conversation(chat_id)
     config = config_for(tool_names)
+    before = len(chat.get_history(curated=True))
     try:
         response = await chat.send_message(message, config=config)
     except Exception as error:
         log.warning("%s failed (%s) - trying %s", FAST_MODEL, error, SMART_MODEL)
         history = chat.get_history(curated=True)  # the conversation so far
-        backup = gemini.aio.chats.create(model=SMART_MODEL, config=chat_config, history=history)
+        chat = gemini.aio.chats.create(model=SMART_MODEL, config=chat_config, history=history)
+        before = len(history)
         # The failed attempt may have saved something before it broke, so warn
         # Gemini not to log the same thing twice.
         note = "(System note: a previous attempt at this message failed partway. Before logging, " \
                "check today's entries with find_entries and don't log anything twice.)"
         message = [*message, note] if isinstance(message, list) else [message, note]
-        response = await backup.send_message(message, config=config)
-        # Next message goes back to the fast model, carrying the whole conversation.
-        conversations[chat_id] = gemini.aio.chats.create(
-            model=FAST_MODEL, config=chat_config, history=backup.get_history(curated=True))
+        response = await chat.send_message(message, config=config)
+    if claims_without_doing(response.text, called_a_tool(chat.get_history(curated=True)[before:])):
+        log.info("Reply claimed an action without a tool call - asking again")
+        response = await chat.send_message(DO_IT_NOW, config=chat_config)
+    # Next message goes on with the fast model, carrying the whole conversation.
+    conversations[chat_id] = chat
     # Carry on from the saved, photo-free copy, so photos aren't re-sent with every message.
     history = chat_memory.save(chat_id, conversations[chat_id].get_history(curated=True))
     conversations[chat_id] = gemini.aio.chats.create(model=FAST_MODEL, config=chat_config, history=history)
@@ -688,15 +738,8 @@ async def on_reminder_done(query, task_id: str) -> None:
         tracker.complete_task(task_id)
     await query.answer(f"✅ {task['title']} done! ♡" if task else "That task is gone")
     bot, chat_id = query.get_bot(), query.message.chat.id
-    if task is not None and task.get("draft"):
-        # A write-up reminder holds a draft you may still want to copy: keep it,
-        # just remove the button.
-        try:
-            await query.edit_message_reply_markup(reply_markup=None)
-        except TelegramError:
-            pass
-    else:
-        await delete_quietly(bot, chat_id, query.message.message_id)
+    # Write-up reminders too: Done means the draft has been copied and sent.
+    await delete_quietly(bot, chat_id, query.message.message_id)
     forget_message(f"reminder_{task_id}")
     await refresh_panel(bot, chat_id, "tasks")
 
@@ -853,6 +896,8 @@ Just text me what you ate, drank, did or spent, send a photo, or a voice note �
 /dashboard - charts of everything, in your browser
 /export - Excel file of your habits & spending
 /news - AI & tech news + Malaysian events
+/brain - your saved notes, links & PDFs (just ask me about them)
+/reportcard - how well I understand you, from my latest exam
 /reminders - switch reminders on/off
 /reset - clear chat memory (logs stay saved)"""
 
@@ -868,6 +913,8 @@ COMMANDS = [
     ("dashboard", "charts of everything, in your browser 🌸"),
     ("export", "Excel file of habits & spending 🎀"),
     ("news", "AI & tech news + Malaysian events 🫧"),
+    ("brain", "your saved notes, links & PDFs 📚"),
+    ("reportcard", "how well Moss understands you 📊"),
     ("reminders", "switch reminders on/off 🔔"),
     ("reset", "clear chat memory (logs stay) 🤍"),
     ("help", "what I can do ♡"),
@@ -1040,9 +1087,75 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     caption = update.message.caption or (
         "If this is food or a drink, identify it, estimate calories and log it. "
         "If it's a receipt, log the expense. Otherwise just tell me what you see.")
-    # Photos are food or receipts: straight to the logging tools, no need to ask Jev.
+    # Photos are food, receipts, or notes to save: no need to ask Jev.
     await ask_gemini(update, context, [image, with_timestamp(caption)],
-                     tool_names=jev_router.GROUPS["log"] | jev_router.GROUPS["settings"])
+                     tool_names=jev_router.GROUPS["log"] | jev_router.GROUPS["settings"] | {"save_note"})
+
+
+# --- Files: saved to the second brain (brain.py) ------------------------------------
+MAX_FILE_MB = 20  # the most Telegram lets a bot download
+
+
+async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """A PDF or text file: its text goes into the second brain, then Moss says what it's about."""
+    if await reject_if_not_owner(update):
+        return
+    document = update.message.document
+    if (document.file_size or 0) > MAX_FILE_MB * 1024 * 1024:
+        await update.message.reply_text(f"📄 That file is too big for me (max {MAX_FILE_MB} MB) (,,>﹏<,,)")
+        return
+    name = document.file_name or "document"
+    async with typing_indicator(update.message.chat):
+        try:
+            file = await document.get_file()
+            data = bytes(await file.download_as_bytearray())
+            text, pages = await brain.read_document(data, name, document.mime_type or "")
+            kind = "pdf" if name.lower().endswith(".pdf") else "file"
+            title = name.rsplit(".", 1)[0].replace("_", " ")
+            # Saving waits on Gemini and Firestore: run it beside the bot so it stays responsive.
+            saved = await asyncio.to_thread(brain.save, kind, title, text, f"file:{document.file_unique_id}", pages)
+        except ValueError as error:
+            await update.message.reply_text(f"📄 {error} ♡")
+            return
+        except Exception as error:
+            log.exception("Couldn't save a file")
+            await update.message.reply_text(f"(,,>﹏<,,) I couldn't save that file: {error}")
+            return
+    if saved.get("error"):
+        await update.message.reply_text(f"📄 {saved['error']} Is it a scan or a picture? ♡")
+        return
+    note = ("it was already saved" if saved.get("already_saved")
+            else f"saved: {pages or 'no'} pages, {saved['pieces']} pieces")
+    asked = update.message.caption or "Tell me in 1-2 short lines what it's about."
+    await ask_gemini(update, context, with_timestamp(
+        f'(I sent you the file "{name}" and it\'s in my second brain, {note}.)\n{asked}\n\n'
+        f"The start of it:\n{text[:3000]}"), tool_names=jev_router.GROUPS["brain"])
+
+
+async def show_report_card(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/reportcard: the latest exam results (report_card.py, run on the PC)."""
+    if await reject_if_not_owner(update):
+        return
+    cards = report_card.history(1)
+    await update.message.reply_text(report_card.text(cards[-1]) if cards else
+                                    "📊 No report card yet. Run report_card.py on your PC first ♡")
+
+
+async def show_brain(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/brain: the newest things in the second brain."""
+    if await reject_if_not_owner(update):
+        return
+    saved = brain.list_brain(10)
+    if not saved["total"]:
+        await update.message.reply_text(
+            "📚 Your second brain is empty for now ♡\nSend me a PDF, a link with \"save this\", a "
+            "photo of your notes with \"save this\", or say \"remember that...\". Then just ask me about it 🎀")
+        return
+    icons = {"note": "📝", "link": "🔗", "pdf": "📄", "file": "📄"}
+    lines = [f"{icons.get(item['kind'], '📝')} {item['title']} · {item['saved'][:10]}"
+             for item in saved["newest_first"]]
+    await update.message.reply_text(f"📚 Your second brain · {saved['total']} saved\n\n" + "\n".join(lines)
+                                    + "\n\nAsk me anything about them ♡")
 
 
 # --- Voice notes ------------------------------------------------------------------
@@ -1138,6 +1251,8 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("water", show_water))
     app.add_handler(CommandHandler("bills", show_bills))
     app.add_handler(CommandHandler("dashboard", open_dashboard))
+    app.add_handler(CommandHandler("brain", show_brain))
+    app.add_handler(CommandHandler("reportcard", show_report_card))
     app.add_handler(CommandHandler("period", show_period))
     app.add_handler(CommandHandler("reset", reset))
     import reminders  # imported here: reminders.py itself imports this file
@@ -1146,6 +1261,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("siri", siri.show_setup))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
+    app.add_handler(MessageHandler(filters.Document.ALL, on_document))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice))
     app.add_handler(CallbackQueryHandler(on_button))
     app.add_error_handler(on_error)

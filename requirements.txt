@@ -8,3 +8,4 @@ google-cloud-firestore==2.34.1
 starlette==1.7.0
 uvicorn==0.54.0
 typesafe-sdk==0.7.4
+pypdf==6.20.1

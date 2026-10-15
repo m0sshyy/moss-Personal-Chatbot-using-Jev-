@@ -24,6 +24,7 @@ from datetime import timedelta
 
 import bills
 import period
+import report_card
 import tracker
 
 LINK_MINUTES = 15
@@ -132,7 +133,15 @@ def data(days: int = 30) -> dict:
         "cycle": {key: cycle.get(key) for key in ("has_data", "cycle_day", "phase", "next_period",
                                                   "days_until_next", "average_cycle_days")},
         "weights": weights,
+        "report_card": report_card_summary(),
     }
+
+
+def report_card_summary() -> dict:
+    """The latest report card (report_card.py) and the overall score of each run."""
+    cards = report_card.history()
+    return {"latest": cards[-1] if cards else None,
+            "history": [{"run_at": card["run_at"], "overall": card["overall"]} for card in cards]}
 
 
 # --- The page ------------------------------------------------------------------------
@@ -230,6 +239,20 @@ PAGE = """<!doctype html>
   .state { font-size: 12px; white-space: nowrap; }
   .empty { color: var(--muted); margin: 6px 0; }
   .cycle-big { font-size: 30px; font-weight: 700; }
+  /* report card */
+  .rc { margin-bottom: 12px; }
+  .rc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .rc-head h2 { font-size: 17px; margin: 0; }
+  .rc-top { display: flex; align-items: center; gap: 18px; margin-top: 8px; }
+  .rc-overall { text-align: center; flex: none; }
+  .rc-big { font-size: 40px; font-weight: 800; color: var(--pink); line-height: 1; }
+  .rc-scores { flex: 1; min-width: 0; }
+  .rc h3 { font-size: 14px; margin: 6px 0 4px; color: var(--text-2); }
+  .rc details { margin-top: 8px; }
+  .rc summary { cursor: pointer; color: var(--text-2); font-size: 14px; padding: 4px 0; }
+  .miss { padding: 7px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+  .miss:last-child { border-bottom: 0; }
+  .miss .what { font-weight: 600; }
   footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 18px; }
   @media (max-width: 420px) {   /* small phones: slightly more compact tiles */
     .today { gap: 10px; }
@@ -281,6 +304,10 @@ PAGE = """<!doctype html>
     <div class="card"><h2 style="font-size:17px;margin:0">🧾 Bills &amp; subscriptions</h2><div id="bills"></div></div>
     <div class="card"><h2 style="font-size:17px;margin:0">🩸 Cycle</h2><div id="cycle"></div></div>
     <div class="card chart-card" id="weight-card" hidden><div class="top"><h2>⚖️ Weight</h2></div><div class="chips" id="weight-chips"></div><div class="chart"><canvas id="weight"></canvas></div></div>
+  </section>
+  <section class="card rc" id="rc" aria-label="Moss report card">
+    <div class="rc-head"><h2>📊 Moss report card</h2><span class="small" id="rc-when"></span></div>
+    <div id="rc-body"></div>
   </section>
   <footer>Only you can see this · Moss 🎀</footer>
 </main>
@@ -527,6 +554,92 @@ function weight(d) {
   });
 }
 
+/* ---------- report card ---------- */
+const pct = share => Math.round(share * 100) + "%";
+function reportCard(d) {
+  const c = d.report_card.latest, body = document.getElementById("rc-body");
+  charts.rcTrend?.destroy(); charts.rcSweep?.destroy();
+  if (!c) { body.replaceChildren(el("p", "empty", "No report card yet: run report_card.py on your PC ✨")); return; }
+  set("rc-when", c.run_at + " · " + c.messages + " messages");
+  const top = el("div", "rc-top"), overall = el("div", "rc-overall"), scores = el("div", "rc-scores");
+  overall.append(el("div", "rc-big", pct(c.overall)), el("div", "small", "overall"));
+  const rows = [["🧭", "Routing (Jev)", c.routing.score, pct(c.routing.safe) + " safe · " + c.routing.avg_tools + " of " + c.routing.all_tools + " tools"],
+                ["🛠️", "Tool choice (Gemini)", c.tools.score, c.tools.ok + " of " + c.messages + " right" + (c.tools.nudged ? " · safety net used " + c.tools.nudged + "x" : "")],
+                ["📚", "Second brain search", c.brain.score, "first result right " + pct(c.brain.first_right)]];
+  scores.replaceChildren(...rows.map(([emoji, name, score, note]) => {
+    const row = el("div", "list-row"), left = el("div", "name"), line = el("div", "", emoji + " " + name);
+    const bar = el("div", "meter"), fill = el("span");
+    fill.style.background = "var(--pink)"; bar.append(fill);
+    left.append(line, bar, el("div", "small", note));
+    requestAnimationFrame(() => fill.style.width = score * 100 + "%");
+    row.append(left, el("span", "big", pct(score)));
+    return row;
+  }));
+  top.append(overall, scores);
+  const speed = el("div", "chips");
+  speed.append(chip("⚡ Jev " + c.speed.jev_ms + " ms"), chip("✨ Gemini " + fmt(c.speed.gemini_ms / 1000, 1) + " s"),
+               chip("🤖 " + c.models.chat), chip("🧠 " + c.models.embeddings));
+  const two = el("div", "grid");
+  const sweepBox = el("div"), sweepArea = el("div", "chart"), sweepCanvas = el("canvas");
+  sweepCanvas.setAttribute("aria-label", "Second brain score at each cut-off");
+  sweepArea.append(sweepCanvas);
+  const b = c.brain, better = b.best_score > b.score;
+  sweepBox.append(el("h3", "", "📚 Which cut-off (MIN_MATCH) works best"), sweepArea,
+                  el("p", "small", "Now " + b.cut_off + ": " + pct(b.score) + " right" +
+                     (better ? " · best " + b.best_cut_off + ": " + pct(b.best_score) : " · already the best ✨")));
+  two.append(sweepBox);
+  const history = d.report_card.history;
+  let trendCanvas = null;
+  if (history.length > 1) {
+    const trendBox = el("div"), trendArea = el("div", "chart");
+    trendCanvas = el("canvas");
+    trendCanvas.setAttribute("aria-label", "Overall score, run by run");
+    trendArea.append(trendCanvas);
+    trendBox.append(el("h3", "", "📈 Overall, run by run"), trendArea);
+    two.append(trendBox);
+  }
+  const misses = el("details");
+  misses.append(el("summary", "", "🔍 What it got wrong (" + c.misses.length + ")"), ...c.misses.map(m => {
+    const row = el("div", "miss");
+    const did = { routing: "🧭 Jev gave", tools: "🛠️ Gemini did", brain: "📚 Search found" }[m.part];
+    row.append(el("div", "what", "“" + m.say + "”"),
+               el("div", "small", did + ": " + m.got.slice(0, 4).join(", ") + (m.got.length > 4 ? "…" : "") +
+                  " · wanted " + m.want.join(" or ")));
+    if (m.reply) row.append(el("div", "small", "💬 " + m.reply.slice(0, 140) + "…"));
+    return row;
+  }));
+  body.replaceChildren(top, speed, two, misses);
+  const scales = {
+    x: { grid: { display: false }, border: { display: false }, ticks: { color: "#a8939c", maxRotation: 0, maxTicksLimit: 5 } },
+    y: { min: 0, max: 100, grid: { color: "#f1edef" }, border: { display: false },
+         ticks: { color: "#a8939c", maxTicksLimit: 5, callback: v => v + "%" } } };
+  const tip = { backgroundColor: "#33262c", padding: 10, displayColors: false };
+  const cutOffs = b.sweep.map(p => p[0]);
+  charts.rcSweep = new Chart(sweepCanvas, {
+    type: "line",
+    data: { labels: cutOffs.map(t => t.toFixed(2)),
+            datasets: [{ data: b.sweep.map(p => p[1] * 100), borderColor: "#d6336c", borderWidth: 2, tension: 0.2,
+                         pointRadius: ctx => cutOffs[ctx.dataIndex] === b.cut_off ? 6 : 0, pointHoverRadius: 6,
+                         pointBackgroundColor: "#d6336c", pointBorderColor: "#fff", pointBorderWidth: 2 }] },
+    options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+               plugins: { legend: { display: false }, tooltip: { ...tip, callbacks: {
+                 title: items => "cut-off " + items[0].label + (cutOffs[items[0].dataIndex] === b.cut_off ? " (now)" : ""),
+                 label: item => "📚 " + Math.round(item.parsed.y) + "% right" } } },
+               scales },
+  });
+  if (trendCanvas) charts.rcTrend = new Chart(trendCanvas, {
+    type: "line",
+    data: { labels: history.map(h => short(h.run_at.slice(0, 10))),
+            datasets: [{ data: history.map(h => h.overall * 100), borderColor: "#d6336c", borderWidth: 2, tension: 0.2,
+                         pointRadius: 4, pointBackgroundColor: "#d6336c" }] },
+    options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+               plugins: { legend: { display: false }, tooltip: { ...tip, callbacks: {
+                 title: items => history[items[0].dataIndex].run_at,
+                 label: item => "📊 " + Math.round(item.parsed.y) + "% overall" } } },
+               scales },
+  });
+}
+
 /* ---------- loading ---------- */
 async function load(days) {
   const response = await fetch("/dashboard/data?days=" + days, { credentials: "same-origin" });
@@ -535,7 +648,7 @@ async function load(days) {
   selected = null;
   document.getElementById("day").hidden = true;
   document.getElementById("tip").hidden = false;
-  today(D); buildCharts(D); budgets(D); spentByType(D); bills(D); cycle(D); weight(D);
+  today(D); buildCharts(D); budgets(D); spentByType(D); bills(D); cycle(D); weight(D); reportCard(D);
 }
 for (const button of document.querySelectorAll(".range button")) {
   button.onclick = () => {

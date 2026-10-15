@@ -9,6 +9,7 @@ ever touching your real data.
 
 import copy
 import itertools
+import math
 import operator
 
 from google.api_core.exceptions import AlreadyExists
@@ -80,6 +81,25 @@ class Query:
             docs = docs[:self._limit]
         return [Snapshot(Document(self._store, doc_id), copy.deepcopy(data)) for doc_id, data in docs]
 
+    def find_nearest(self, vector_field, query_vector, distance_measure, limit, distance_result_field=None):
+        """Vector search (cosine distance only), checking every document."""
+        return _Nearest(self, vector_field, list(query_vector), limit, distance_result_field)
+
+
+class _Nearest:
+    def __init__(self, query, field, vector, limit, result_field):
+        self._query, self._field, self._vector, self._limit, self._result_field =             query, field, vector, limit, result_field
+
+    def stream(self):
+        def distance(snapshot):
+            a, b = self._vector, list(snapshot._data[self._field])
+            return 1 - sum(x * y for x, y in zip(a, b)) / (math.hypot(*a) * math.hypot(*b) or 1)
+        found = sorted((s for s in self._query.stream() if self._field in s._data), key=distance)
+        for snapshot in found[:self._limit]:
+            if self._result_field:
+                snapshot._data[self._result_field] = distance(snapshot)
+        return found[:self._limit]
+
 
 class Collection(Query):
     def __init__(self, store, name):
@@ -95,8 +115,25 @@ class Collection(Query):
         return None, doc
 
 
+class Batch:
+    """Writes saved up and done together by commit()."""
+    def __init__(self):
+        self._writes = []
+
+    def set(self, ref, data):
+        self._writes.append((ref, data))
+
+    def commit(self):
+        for ref, data in self._writes:
+            ref.set(data)
+        self._writes = []
+
+
 class FakeClient:
     project = "test-project"
+
+    def batch(self):
+        return Batch()
 
     def __init__(self):
         self._collections = {}

@@ -46,6 +46,7 @@ GROUPS = {
     "settings": {"set_goal", "get_goals", "set_budget", "get_budgets", "add_quick_button",
                  "list_quick_buttons", "remove_quick_button", "set_weather_place",
                  "set_rain_alert_areas"},
+    "brain": {"save_note", "save_link", "search_brain", "list_brain", "forget_brain_item"},
 }
 
 # The questions Jev answers, one per group plus "small talk". Each statement is
@@ -57,13 +58,14 @@ QUESTIONS = {
     "log": Noul(instructions=ABOUT + (
         "the owner is telling me something they ate, drank, did, spent, felt, slept or weighed, "
         "something about their period, or is correcting or undoing something already logged, "
-        "so it should be saved.")),
+        "so it should be saved. Short notes count: an item with a price ('grab to office rm18', "
+        "'nasi kerabu 12.50') is money spent.")),
     "history": Noul(instructions=ABOUT + (
         "the owner is asking about their own past data: totals, what they ate or spent, progress "
         "against goals, cycle predictions, or trends.")),
     "tasks": Noul(instructions=ABOUT + (
         "it is about the owner's to-do list or reminders: adding, ticking off, moving or "
-        "listing tasks, or 'remind me to ...'.")),
+        "listing tasks, or 'remind me to ...'. Saved notes are not tasks.")),
     "calendar": Noul(instructions=ABOUT + (
         "it is about calendar events: appointments, classes, meetings, birthdays, "
         "cancelling or moving an event, or what's on their schedule.")),
@@ -75,7 +77,13 @@ QUESTIONS = {
         "book entry, a report for their supervisor, or a work summary.")),
     "settings": Noul(instructions=ABOUT + (
         "the owner wants to set or change a goal (water, calories...), a monthly spending budget, "
-        "their one-tap supplement buttons, or where they live or work (for the weather forecast and rain alerts).")),
+        "their one-tap supplement buttons, or where they live or work (for the weather forecast and rain alerts). "
+        "Just spending money is not a setting.")),
+    "brain": Noul(instructions=ABOUT + (
+        "the owner wants me to remember or save a note, link or document for later, or is asking "
+        "about something they saved, read or studied (notes, articles, documents, codes), "
+        "asks a question their saved notes could answer, or wants a saved note deleted ('forget the "
+        "printer note').")),
     "small_talk": Noul(instructions=ABOUT + (
         "it is only a greeting, thanks, a reaction or general chat that needs nothing "
         "saved, changed or looked up.")),

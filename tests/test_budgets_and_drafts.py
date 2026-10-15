@@ -101,7 +101,7 @@ def test_reminder_comes_with_a_draft(clock, monkeypatch):
     assert tracker.list_tasks()[0]["last_draft"] == "2026-10-13"
 
 
-def test_done_keeps_the_draft_but_removes_the_button(clock):
+def test_done_removes_the_draft_reminder_too(clock):
     task_id = tracker.add_task("📒 Log book report", repeat="weekdays", draft="daily_log")["task_id"]
     calls = []
 
@@ -120,4 +120,5 @@ def test_done_keeps_the_draft_but_removes_the_button(clock):
     query = SimpleNamespace(answer=answer, edit_message_reply_markup=edit_markup, get_bot=lambda: FakeBot(),
                             message=SimpleNamespace(message_id=9, chat=SimpleNamespace(id=42)))
     asyncio.run(MosshyBot.on_reminder_done(query, task_id))
-    assert ("button removed", None) in calls and ("deleted",) not in calls
+    assert ("deleted",) in calls and ("button removed", None) not in calls
+    assert tracker.task_is_done(tracker.list_tasks()[0])

@@ -290,6 +290,13 @@
   .num b { font-size: clamp(44px, 6vw, 64px); letter-spacing: -.045em; line-height: 1; display: block; margin-bottom: 10px; }
   .num h3 { margin: 0 0 6px; font-size: 18px; } .num p { margin: 0; color: var(--muted); font-size: 14.5px; }
 
+  .rc-cta { display: flex; align-items: center; gap: 24px; margin: 16px 0 0; padding: 24px 30px; border-radius: 30px; background: linear-gradient(120deg, #fff, #fff0f5);
+            box-shadow: var(--shadow); color: var(--ink); transition: transform .3s; }
+  .rc-cta:hover { transform: translateY(-3px); }
+  .rc-cta b { font-size: clamp(44px, 6vw, 64px); letter-spacing: -.045em; line-height: 1; flex: none; }
+  .rc-cta span { flex: 1; color: var(--muted); font-size: 16px; } .rc-cta strong { color: var(--ink); font-size: 18px; }
+  .rc-cta i { font-style: normal; font-size: 26px; color: var(--pink); flex: none; }
+
   /* story */
   .story { display: grid; grid-template-columns: .9fr 1.1fr; gap: 50px; align-items: start; }
   .timeline { position: relative; display: grid; gap: 4px; }
@@ -340,7 +347,7 @@
   <div class="wrap">
     <a class="logo" href="#">🌿 Moss</a>
     <div class="nav-links">
-      <a href="#features">Features</a><a href="#iphone">iPhone</a><a href="#dashboard">Dashboard</a><a href="#how">How it works</a>
+      <a href="#features">Features</a><a href="#iphone">iPhone</a><a href="#dashboard">Dashboard</a><a href="#how">How it works</a><a href="report-card">Report card</a>
       <a class="pill" href="#demo">See it live</a>
     </div>
   </div>
@@ -384,9 +391,9 @@
   <div class="wrap">
     <div class="stats reveal">
       <div class="stat"><b data-count="24" data-suffix="/7">0</b><span>on Google Cloud</span></div>
-      <div class="stat"><b data-count="31">0</b><span>tools Moss can use</span></div>
+      <div class="stat"><b data-count="36">0</b><span>tools Moss can use</span></div>
       <div class="stat"><b data-count="36" data-prefix="−" data-suffix="%">0</b><span>AI tokens, thanks to a router</span></div>
-      <div class="stat"><b data-count="110">0</b><span>automated tests</span></div>
+      <div class="stat"><b data-count="136">0</b><span>automated tests</span></div>
     </div>
   </div>
 </header>
@@ -411,11 +418,11 @@
         <button class="app" data-d="Habits and to-dos that tidy themselves."><span class="ic" style="background:linear-gradient(160deg,#ffdeeb,#faa2c1)">📝</span>Tasks</button>
         <button class="app" data-d="Google Calendar events, reminded 30 min before."><span class="ic" style="background:linear-gradient(160deg,#e7f5ff,#74c0fc)">📅</span>Calendar</button>
         <button class="app" data-d="Log book and report drafts from your notes."><span class="ic" style="background:linear-gradient(160deg,#fff4e6,#ffc078)">📒</span>Work</button>
-        <button class="app" data-d="8am: weather, haze and your plan for the day."><span class="ic" style="background:linear-gradient(160deg,#ffe8cc,#ff922b)">🌅</span>Briefing</button>
+        <button class="app" data-d="8am: weather, haze and your plan. Mondays: AI news."><span class="ic" style="background:linear-gradient(160deg,#ffe8cc,#ff922b)">🌅</span>Briefing</button>
         <button class="app" data-d="Live storm and haze warnings for home and work."><span class="ic" style="background:linear-gradient(160deg,#dbe4ff,#748ffc)">⛈️</span>Alerts</button>
         <button class="app" data-d="Weekly and monthly coaching, with trends."><span class="ic" style="background:linear-gradient(160deg,#ffdeeb,#e64980)">📊</span>Reports</button>
         <button class="app" data-d="Talk instead of typing, in English or Malay."><span class="ic" style="background:linear-gradient(160deg,#f8f0fc,#cc5de8)">🎙️</span>Voice</button>
-        <button class="app" data-d="Weekly AI and tech news, plus Malaysian events."><span class="ic" style="background:linear-gradient(160deg,#f1f3f5,#adb5bd)">📰</span>News</button>
+        <button class="app" data-d="Save notes, links and PDFs. Ask, and get answers with sources."><span class="ic" style="background:linear-gradient(160deg,#c3fae8,#38d9a9)">📚</span>Second brain</button>
       </div>
       <div class="pop" id="pop"></div>
     </div>
@@ -578,7 +585,7 @@
     <div class="tech reveal">
       <span>Python</span><span>Google Cloud Run</span><span>Gemini API</span><span>TypeSafe Jev</span><span>Firestore</span><span>Cloud Scheduler</span>
       <span>Secret Manager</span><span>Firebase Hosting</span><span>GitHub Actions</span><span>pytest</span><span>Chart.js</span><span>Telegram Bot API</span>
-      <span>Apple Shortcuts</span><span>Google Apps Script</span><span>data.gov.my</span><span>Open-Meteo</span>
+      <span>Gemini embeddings</span><span>Vector search</span><span>Apple Shortcuts</span><span>Google Apps Script</span><span>data.gov.my</span><span>Open-Meteo</span>
     </div>
   </div>
 </section>
@@ -591,10 +598,15 @@
     </div>
     <div class="nums">
       <div class="num reveal"><b class="grad" data-count="36" data-prefix="−" data-suffix="%">0</b><h3>AI cost</h3><p>A router picks the tools first.</p></div>
-      <div class="num reveal"><b class="grad" data-count="110">0</b><h3>Automated tests</h3><p>Every push tested, then auto-deployed.</p></div>
+      <div class="num reveal"><b class="grad" data-count="136">0</b><h3>Automated tests</h3><p>Every push tested, then auto-deployed.</p></div>
       <div class="num reveal"><b class="grad">🔒</b><h3>Private by design</h3><p>One owner. Secrets locked away.</p></div>
       <div class="num reveal"><b class="grad">≈RM0</b><h3>Hosting cost</h3><p>Sleeps when idle. Free tiers.</p></div>
     </div>
+    <a class="rc-cta reveal" href="report-card">
+      <b class="grad" id="rc-score">95%</b>
+      <span><strong>Moss sits an exam after every change.</strong><br>See its report card, the bug it caught, and the fix.</span>
+      <i aria-hidden="true">→</i>
+    </a>
   </div>
 </section>
 
@@ -614,6 +626,8 @@
       <div class="step"><i>📱</i><p><b>Into my iPhone</b><span>Siri, Health, Apple Pay.</span></p></div>
       <div class="step"><i>📊</i><p><b>Dashboard &amp; receipts</b><span>Charts and Gmail.</span></p></div>
       <div class="step"><i>⛈️</i><p><b>Live alerts</b><span>Storms and haze.</span></p></div>
+      <div class="step"><i>📚</i><p><b>A second brain</b><span>Notes and PDFs it can search.</span></p></div>
+      <div class="step"><i>📝</i><p><b>A report card</b><span>An exam after every change.</span></p></div>
     </div>
   </div>
 </section>
@@ -806,6 +820,9 @@
   const show = i => { nodes.forEach((n, j) => n.classList.toggle("on", j === i)); $("#explain").innerHTML = steps[i]; };
   nodes.forEach(n => n.addEventListener("click", () => show(+n.dataset.i)));
   let flowing = false;
+  // The report card's latest overall score (site/report-card.json, from report_card.py --site).
+  fetch("report-card.json").then(r => r.json()).then(d => { $("#rc-score").textContent = Math.round(d.after.overall * 100) + "%"; }).catch(() => {});
+
   $("#playFlow").addEventListener("click", async () => {
     if (flowing) return; flowing = true;
     for (let i = 0; i < steps.length; i++) { show(i); await wait(2300); }
