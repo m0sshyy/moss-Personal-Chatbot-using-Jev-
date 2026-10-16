@@ -18,7 +18,8 @@ Run it (about 2 minutes, a few sen of Gemini and Jev usage):
     .venv\\Scripts\\python report_card.py
     .venv\\Scripts\\python report_card.py --no-save     (just print, don't store it)
     .venv\\Scripts\\python report_card.py --site        (no exam: update the project page's numbers)
-Each run is kept in Firestore "report_cards", shown on the dashboard and with /reportcard.
+Each run is kept in Firestore "report_cards" and shown with /reportcard (and, after --site,
+on the project page).
 """
 
 import argparse
@@ -304,7 +305,7 @@ def main() -> None:
                   + (f"\n      Moss said: {miss['reply']!r}" if miss.get("reply") else ""))
     if not args.no_save:
         save(card)
-        print("\nSaved: see it on the dashboard or with /reportcard ♡")
+        print("\nSaved: see it with /reportcard ♡ (update the project page with --site)")
 
 
 if __name__ == "__main__":

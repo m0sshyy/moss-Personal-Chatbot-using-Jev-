@@ -422,9 +422,9 @@ in English and Malay, plus 26 second-brain questions) and scores three things:
 .venv\Scripts\python report_card.py            # about 1 minute, a few sen
 .venv\Scripts\python report_card.py --no-save  # try a change without keeping the result
 ```
-Each run is kept in Firestore `report_cards`, and shows at the bottom of the
-dashboard (scores, the cut-off chart, what it got wrong, and the trend run by run)
-and with `/reportcard`. Run it before and after changing a prompt, a model or Jev's
+Each run is kept in Firestore `report_cards` and shows with `/reportcard`;
+`report_card.py --site` puts the results on the project page
+(moss-alya.web.app/report-card). Run it before and after changing a prompt, a model or Jev's
 questions, so you know whether the change helped. Scores move a point or two
 between runs, because the AI's answers vary slightly each time.
 

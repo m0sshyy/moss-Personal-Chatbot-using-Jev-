@@ -1,7 +1,6 @@
 """Tests for report_card.py: marking the exam, the brain cut-off sweep, and keeping cards."""
 
 import brain
-import dashboard
 import report_card
 from report_card_cases import BRAIN_DOCS, BRAIN_QUESTIONS, CASES
 from test_brain import word_vectors
@@ -83,9 +82,3 @@ def test_report_card_is_kept_and_shown(clock):
     assert report_card.history()[-1]["run_at"] == "2026-10-13 09:00"
     shown = report_card.text(card)
     assert "Overall: 63%" in shown and "MIN_MATCH 0.65" in shown
-    summary = dashboard.report_card_summary()
-    assert summary["latest"]["overall"] == card["overall"] and summary["history"][0]["run_at"] == "2026-10-13 09:00"
-
-
-def test_dashboard_without_report_cards(clock):
-    assert dashboard.report_card_summary() == {"latest": None, "history": []}
