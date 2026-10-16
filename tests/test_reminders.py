@@ -15,7 +15,7 @@ class FakeTelegram:
     def __init__(self):
         self.sent, self.deleted, self.edited, self.next_id = [], [], [], 100
 
-    async def send_message(self, chat_id, text, reply_markup=None, parse_mode=None):
+    async def send_message(self, chat_id, text, reply_markup=None, parse_mode=None, **kwargs):
         self.sent.append(text)
         self.next_id += 1
         return SimpleNamespace(message_id=self.next_id)

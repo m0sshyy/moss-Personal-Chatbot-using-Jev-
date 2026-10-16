@@ -90,7 +90,7 @@ async def handle(telegram_bot, data: dict) -> str:
     if not text:
         return "Sorry, I didn't catch that."
     tools = await jev_router.pick_tools(text, bot.previous_reply(chat_id))
-    response = await bot.send_to_gemini(chat_id, bot.with_timestamp(text + FOR_SIRI), tools)
+    response = await bot.send_to_gemini(chat_id, bot.with_timestamp(text + FOR_SIRI), tools, owner_text=text)
     reply = speakable(response.text or "Done.")
     if await bot.ask_to_confirm_deletes(telegram_bot, chat_id):
         reply += " Please confirm in Telegram."

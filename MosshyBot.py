@@ -36,7 +36,7 @@ import httpx
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, ReplyKeyboardMarkup, Update
 from telegram.constants import ChatAction
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes,
@@ -49,6 +49,7 @@ import dashboard
 import drafts
 import exports
 import google_calendar
+import guard
 import jev_router
 import period
 import weather
@@ -266,8 +267,10 @@ gemini = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(
 # everyday logging much faster. Reports still use full thinking.
 chat_config = types.GenerateContentConfig(
     system_instruction=SYSTEM_INSTRUCTION,
-    tools=(tracker.TOOLS + period.TOOLS + drafts.TOOLS + bills.TOOLS + weather.TOOLS + brain.TOOLS
-           + (google_calendar.TOOLS if CALENDAR_ON else [])),
+    # guard.guarded: after reading saved notes/pages, nothing can be changed in that reply (guard.py).
+    tools=[guard.guarded(tool) for tool in
+           tracker.TOOLS + period.TOOLS + drafts.TOOLS + bills.TOOLS + weather.TOOLS + brain.TOOLS
+           + (google_calendar.TOOLS if CALENDAR_ON else [])],
     thinking_config=types.ThinkingConfig(thinking_level="low"))
 
 # One conversation per Telegram chat, so Gemini remembers what you said earlier.
@@ -331,9 +334,12 @@ async def reject_if_not_owner(update: Update) -> bool:
 
 
 async def send_long(bot, chat_id: int | str, text: str) -> None:
-    """Telegram caps messages at 4096 characters, so split long answers."""
+    """Telegram caps messages at 4096 characters, so split long answers.
+    No link previews: Telegram would open any link in the reply to draw one, and a
+    link planted by hidden instructions could carry your data to someone's server."""
     for start in range(0, len(text), 4000):
-        await bot.send_message(chat_id, text[start : start + 4000])
+        await bot.send_message(chat_id, text[start : start + 4000],
+                               link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 
 @asynccontextmanager
@@ -384,6 +390,7 @@ CLAIMS_DONE = re.compile(
     r"deleted|removed|ticked|marked)\b"
     r"|\b(i'?ll|i will|let me)\b[^.!?\n]{0,20}\b(add|save|log|set|update|change|move|delete|remove|tick|mark)\b"
     r"|\b(adding|saving|logging|setting|updating|deleting|removing)\b[^.!?\n]{0,25}\b(right away|now|for you)\b"
+    r"|\b(goal|budget|reminder|task|event|note|button|bill)s?\s+(set|added|saved|logged|updated|deleted|removed)\b"
     r"|📅 added|✅ logged|✅ saved|✅ added", re.IGNORECASE)
 DO_IT_NOW = ("(System note: your reply says you did something, but no tool was called, so nothing was "
              "saved or changed. Call the right tool now, then confirm. If it was already done earlier "
@@ -399,9 +406,13 @@ def claims_without_doing(text: str | None, called: bool) -> bool:
     return not called and bool(CLAIMS_DONE.search(text or ""))
 
 
-async def send_to_gemini(chat_id: int, message, tool_names: set[str] | None = None):
+async def send_to_gemini(chat_id: int, message, tool_names: set[str] | None = None,
+                         owner_text: str = "", read_saved: bool = False):
     """Send to the fast model; if it's busy or down, retry once with the smart model.
-    tool_names limits which tools Gemini gets for this message (None = all)."""
+    tool_names limits which tools Gemini gets for this message (None = all).
+    owner_text: the owner's own words (only links in them can be saved), read_saved:
+    the message carries outside text, so nothing can be changed in this reply (guard.py)."""
+    guard.new_reply(owner_text, read_saved)
     chat = get_conversation(chat_id)
     config = config_for(tool_names)
     before = len(chat.get_history(curated=True))
@@ -431,7 +442,7 @@ async def send_to_gemini(chat_id: int, message, tool_names: set[str] | None = No
 
 async def ask_gemini(update: Update, context: ContextTypes.DEFAULT_TYPE, message,
                      route_text: str | None = None, tool_names: set[str] | None = None,
-                     header: str = "") -> None:
+                     header: str = "", owner_text: str = "", read_saved: bool = False) -> None:
     """Send a message (text, or a list of text + images) to Gemini and reply with the answer.
     With route_text, Jev first decides which tools Gemini needs (jev_router.py).
     header goes above the reply (e.g. what I heard in a voice note)."""
@@ -440,7 +451,7 @@ async def ask_gemini(update: Update, context: ContextTypes.DEFAULT_TYPE, message
             chat_id = update.effective_chat.id
             if route_text is not None:
                 tool_names = await jev_router.pick_tools(route_text, previous_reply(chat_id))
-            response = await send_to_gemini(chat_id, message, tool_names)
+            response = await send_to_gemini(chat_id, message, tool_names, owner_text, read_saved)
         await send_long(context.bot, update.effective_chat.id,
                         header + (response.text or "(Gemini returned an empty answer)"))
         await ask_to_confirm_deletes(context.bot, update.effective_chat.id)
@@ -943,7 +954,7 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await show_tasks(update, context)
         return
     await ask_gemini(update, context, with_timestamp(
-        f"Add these to my task list, then show them as a prioritised to-do list:\n{dump}"))
+        f"Add these to my task list, then show them as a prioritised to-do list:\n{dump}"), owner_text=dump)
 
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1064,8 +1075,9 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                          tool_names=set())
     else:
         # Jev decides which tools Gemini needs for this message (jev_router.py).
+        owner_text = text
         text = replying_to(update) + text
-        await ask_gemini(update, context, with_timestamp(text), route_text=text)
+        await ask_gemini(update, context, with_timestamp(text), route_text=text, owner_text=owner_text)
 
 
 def replying_to(update: Update) -> str:
@@ -1089,7 +1101,8 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "If it's a receipt, log the expense. Otherwise just tell me what you see.")
     # Photos are food, receipts, or notes to save: no need to ask Jev.
     await ask_gemini(update, context, [image, with_timestamp(caption)],
-                     tool_names=jev_router.GROUPS["log"] | jev_router.GROUPS["settings"] | {"save_note"})
+                     tool_names=jev_router.GROUPS["log"] | jev_router.GROUPS["settings"] | {"save_note"},
+                     owner_text=update.message.caption or "")
 
 
 # --- Files: saved to the second brain (brain.py) ------------------------------------
@@ -1129,7 +1142,8 @@ async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     asked = update.message.caption or "Tell me in 1-2 short lines what it's about."
     await ask_gemini(update, context, with_timestamp(
         f'(I sent you the file "{name}" and it\'s in my second brain, {note}.)\n{asked}\n\n'
-        f"The start of it:\n{text[:3000]}"), tool_names=jev_router.GROUPS["brain"])
+        f"The start of it:\n{text[:3000]}"), tool_names=jev_router.GROUPS["brain"],
+        owner_text=update.message.caption or "", read_saved=True)  # the file's text is outside text
 
 
 async def show_report_card(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1201,7 +1215,8 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("🎙️ Hmm, I couldn't make out any words. Could you try again? 🎀")
         return
     text = replying_to(update) + heard
-    await ask_gemini(update, context, with_timestamp(text), route_text=text, header=f"🎙️ “{heard}”\n\n")
+    await ask_gemini(update, context, with_timestamp(text), route_text=text, header=f"🎙️ “{heard}”\n\n",
+                     owner_text=heard)
 
 
 # --- 7. Scheduled messages (sent without you asking) --------------------------

@@ -109,12 +109,13 @@ def test_voice_note_is_handled_like_typed_text(monkeypatch):
         assert (audio, mime_type) == (b"ogg-bytes", "audio/ogg")
         return "had nasi lemak"
 
-    async def fake_ask(update, context, message, route_text=None, tool_names=None, header=""):
-        calls.append((route_text, header))
+    async def fake_ask(update, context, message, route_text=None, tool_names=None, header="", owner_text=""):
+        calls.append((route_text, header, owner_text))
     monkeypatch.setattr(MosshyBot, "transcribe", fake_transcribe)
     monkeypatch.setattr(MosshyBot, "ask_gemini", fake_ask)
     asyncio.run(MosshyBot.on_voice(FakeVoiceUpdate(duration=4), None))
-    assert calls == [("had nasi lemak", "🎙️ “had nasi lemak”\n\n")]  # routed by Jev, shown on top
+    # routed by Jev, shown on top, and only the owner's own words can carry links to save
+    assert calls == [("had nasi lemak", "🎙️ “had nasi lemak”\n\n", "had nasi lemak")]
 
 
 def test_too_long_voice_notes_are_refused(monkeypatch):
@@ -130,6 +131,8 @@ def test_claims_without_doing():
     assert MosshyBot.claims_without_doing("I'll save 8,000 steps as your new goal!", False)
     assert MosshyBot.claims_without_doing("Let me update your weather place right away", False)
     assert MosshyBot.claims_without_doing("🎀 Adding that right away for you, Alya!", False)
+    assert MosshyBot.claims_without_doing("✨ Goal set · 8,000 steps per day 🤍", False)
+    assert not MosshyBot.claims_without_doing("Want me to set a goal for you? 🌸", False)
     assert not MosshyBot.claims_without_doing("🎀 I've added it!", True)          # a tool did run
     assert not MosshyBot.claims_without_doing("You're welcome Alya! 🌸", False)
     assert not MosshyBot.claims_without_doing("Let me know if you need anything ♡", False)

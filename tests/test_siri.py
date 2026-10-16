@@ -70,7 +70,7 @@ def test_ask_mosshy_gets_a_speakable_answer(client, monkeypatch):
     async def fake_pick(text, previous=""):
         return {"summarise"}
 
-    async def fake_gemini(chat_id, message, tools):
+    async def fake_gemini(chat_id, message, tools, owner_text=""):
         assert "read aloud" in message and tools == {"summarise"}
         return SimpleNamespace(text="You spent RM 86.50 this week 🌸\n- mostly food! (˶ᵔ ᵕ ᵔ˶)")
     monkeypatch.setattr(siri.jev_router, "pick_tools", fake_pick)

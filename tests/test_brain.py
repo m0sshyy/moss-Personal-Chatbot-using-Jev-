@@ -10,6 +10,7 @@ import pypdf
 import pytest
 
 import brain
+import guard
 import jev_router
 import MosshyBot
 import tracker
@@ -81,6 +82,7 @@ def test_pieces_of_one_document_come_back_together_in_order(clock, monkeypatch):
 
 def test_link_is_saved_once_with_its_text(clock, monkeypatch):
     monkeypatch.setattr(brain, "fetch_page", lambda url: ("RAG explained", "RAG finds pieces of text, then answers."))
+    guard.new_reply("save this https://example.com/rag")  # the owner sent this link
     saved = brain.save_link("https://example.com/rag")
     assert saved["saved"] and saved["title"] == "RAG explained" and "RAG finds" in saved["start_of_page"]
     again = brain.save_link("https://example.com/rag")
@@ -90,6 +92,7 @@ def test_link_is_saved_once_with_its_text(clock, monkeypatch):
 
 
 def test_bad_links_explain_what_went_wrong(monkeypatch):
+    guard.new_reply("save https://example.com/private")
     assert "error" in brain.save_link("not a link")
 
     def blocked(url):
